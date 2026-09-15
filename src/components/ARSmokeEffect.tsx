@@ -1,0 +1,180 @@
+import { useRef, useMemo } from 'react';
+import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
+
+interface ARSmokeEffectProps {
+  isSmoking: boolean;
+  arState: string;
+  flavourColor: string;
+  mouthPos: { x: number; y: number } | null;
+}
+
+export const ARSmokeEffect = ({
+  isSmoking,
+  arState,
+  flavourColor,
+  mouthPos,
+}: ARSmokeEffectProps) => {
+  const count = 120;
+  const particlesRef = useRef<THREE.Points>(null);
+  const exhaleParticlesRef = useRef<THREE.Points>(null);
+
+  // Generate particle buffer data
+  const { positions, sizes, opacities, velocities } = useMemo(() => {
+    const pos = new Float32Array(count * 3);
+    const sz = new Float32Array(count);
+    const op = new Float32Array(count);
+    const vel = new Float32Array(count * 3);
+
+    for (let i = 0; i < count; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 0.4;
+      pos[i * 3 + 1] = 1.3 + Math.random() * 0.2; // Near Hookah Bowl
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 0.4;
+
+      sz[i] = Math.random() * 0.15 + 0.05;
+      op[i] = 0;
+
+      vel[i * 3] = (Math.random() - 0.5) * 0.01;
+      vel[i * 3 + 1] = Math.random() * 0.02 + 0.015;
+      vel[i * 3 + 2] = (Math.random() - 0.5) * 0.01;
+    }
+
+    return {
+      positions: pos,
+      sizes: sz,
+      opacities: op,
+      velocities: vel,
+    };
+  }, [count]);
+
+  // Exhale particle cloud
+  const exhaleCount = 150;
+  const { exhalePositions, exhaleSizes, exhaleOpacities, exhaleVelocities } = useMemo(() => {
+    const pos = new Float32Array(exhaleCount * 3);
+    const sz = new Float32Array(exhaleCount);
+    const op = new Float32Array(exhaleCount);
+    const vel = new Float32Array(exhaleCount * 3);
+
+    for (let i = 0; i < exhaleCount; i++) {
+      pos[i * 3] = 0;
+      pos[i * 3 + 1] = 0.2;
+      pos[i * 3 + 2] = 1.2;
+
+      sz[i] = Math.random() * 0.3 + 0.1;
+      op[i] = 0;
+
+      vel[i * 3] = (Math.random() - 0.5) * 0.02;
+      vel[i * 3 + 1] = Math.random() * 0.015 + 0.01;
+      vel[i * 3 + 2] = Math.random() * 0.02 + 0.01;
+    }
+
+    return {
+      exhalePositions: pos,
+      exhaleSizes: sz,
+      exhaleOpacities: op,
+      exhaleVelocities: vel,
+    };
+  }, [exhaleCount]);
+
+  useFrame((_, delta) => {
+    // 1. Hookah Bowl Smoke Animation
+    if (particlesRef.current) {
+      const posAttr = particlesRef.current.geometry.attributes.position as THREE.BufferAttribute;
+      const posArr = posAttr.array as Float32Array;
+
+      for (let i = 0; i < count; i++) {
+        if (isSmoking || arState === 'SIP_TRIGGERED' || arState === 'SMOKE_ANIMATION') {
+          posArr[i * 3] += velocities[i * 3];
+          posArr[i * 3 + 1] += velocities[i * 3 + 1];
+          posArr[i * 3 + 2] += velocities[i * 3 + 2];
+
+          // Reset particle loop
+          if (posArr[i * 3 + 1] > 2.5) {
+            posArr[i * 3] = (Math.random() - 0.5) * 0.3;
+            posArr[i * 3 + 1] = 1.3;
+            posArr[i * 3 + 2] = (Math.random() - 0.5) * 0.3;
+          }
+        }
+      }
+      posAttr.needsUpdate = true;
+    }
+
+    // 2. Virtual Exhale Smoke Cloud
+    if (exhaleParticlesRef.current) {
+      const posAttr = exhaleParticlesRef.current.geometry.attributes.position as THREE.BufferAttribute;
+      const posArr = posAttr.array as Float32Array;
+      const isExhaling = arState === 'EXHALE' || arState === 'SMOKE_ANIMATION';
+
+      // Determine mouth position origin in 3D AR space
+      const mouthX = mouthPos ? (mouthPos.x - 0.5) * 3.5 : 0;
+      const mouthY = mouthPos ? (0.5 - mouthPos.y) * 2.5 : 0.2;
+
+      for (let i = 0; i < exhaleCount; i++) {
+        if (isExhaling) {
+          posArr[i * 3] += exhaleVelocities[i * 3];
+          posArr[i * 3 + 1] += exhaleVelocities[i * 3 + 1];
+          posArr[i * 3 + 2] += exhaleVelocities[i * 3 + 2];
+
+          if (posArr[i * 3 + 1] > mouthY + 1.2 || Math.abs(posArr[i * 3] - mouthX) > 1.5) {
+            posArr[i * 3] = mouthX + (Math.random() - 0.5) * 0.2;
+            posArr[i * 3 + 1] = mouthY;
+            posArr[i * 3 + 2] = 1.2;
+          }
+        }
+      }
+      posAttr.needsUpdate = true;
+    }
+  });
+
+  const parsedFlavourColor = useMemo(() => new THREE.Color(flavourColor), [flavourColor]);
+
+  return (
+    <group>
+      {/* Bowl Smoke */}
+      <points ref={particlesRef}>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            args={[positions, 3]}
+          />
+        </bufferGeometry>
+        <pointsMaterial
+          size={0.12}
+          color={parsedFlavourColor}
+          transparent
+          opacity={isSmoking || arState === 'SIP_TRIGGERED' ? 0.6 : 0.15}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </points>
+
+      {/* Exhale Cloud Particles */}
+      <points ref={exhaleParticlesRef}>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            args={[exhalePositions, 3]}
+          />
+        </bufferGeometry>
+        <pointsMaterial
+          size={0.25}
+          color={parsedFlavourColor.clone().lerp(new THREE.Color('#ffffff'), 0.5)}
+          transparent
+          opacity={arState === 'EXHALE' ? 0.7 : arState === 'SMOKE_ANIMATION' ? 0.4 : 0}
+          depthWrite={false}
+          blending={THREE.NormalBlending}
+        />
+      </points>
+
+      {/* Coal Glow Light */}
+      <pointLight
+        position={[0, 1.35, 0]}
+        intensity={isSmoking || arState === 'SIP_TRIGGERED' ? 5.0 : 1.5}
+        distance={2.0}
+        color={isSmoking ? '#ff4500' : '#ff8c00'}
+      />
+    </group>
+  );
+};
+
+export default ARSmokeEffect;
