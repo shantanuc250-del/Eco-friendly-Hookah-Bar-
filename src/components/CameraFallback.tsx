@@ -1,6 +1,5 @@
 import React from 'react';
 import { CameraOff, RefreshCw, XCircle } from 'lucide-react';
-import { useSession } from '../context/SessionContext';
 
 interface CameraFallbackProps {
   onRetry: () => void;

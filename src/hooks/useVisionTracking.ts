@@ -131,7 +131,6 @@ export function useVisionTracking(videoRef: React.RefObject<HTMLVideoElement | n
             const landmarks = handResults.landmarks[0];
             const thumbTip = landmarks[4];
             const indexTip = landmarks[8];
-            const wrist = landmarks[0];
 
             // Normalize pinch distance (Thumb tip 4 to Index tip 8)
             const dx = indexTip.x - thumbTip.x;

@@ -20,19 +20,14 @@ export const ARSmokeEffect = ({
   const exhaleParticlesRef = useRef<THREE.Points>(null);
 
   // Generate particle buffer data
-  const { positions, sizes, opacities, velocities } = useMemo(() => {
+  const { positions, velocities } = useMemo(() => {
     const pos = new Float32Array(count * 3);
-    const sz = new Float32Array(count);
-    const op = new Float32Array(count);
     const vel = new Float32Array(count * 3);
 
     for (let i = 0; i < count; i++) {
       pos[i * 3] = (Math.random() - 0.5) * 0.4;
       pos[i * 3 + 1] = 1.3 + Math.random() * 0.2; // Near Hookah Bowl
       pos[i * 3 + 2] = (Math.random() - 0.5) * 0.4;
-
-      sz[i] = Math.random() * 0.15 + 0.05;
-      op[i] = 0;
 
       vel[i * 3] = (Math.random() - 0.5) * 0.01;
       vel[i * 3 + 1] = Math.random() * 0.02 + 0.015;
@@ -41,27 +36,20 @@ export const ARSmokeEffect = ({
 
     return {
       positions: pos,
-      sizes: sz,
-      opacities: op,
       velocities: vel,
     };
   }, [count]);
 
   // Exhale particle cloud
   const exhaleCount = 150;
-  const { exhalePositions, exhaleSizes, exhaleOpacities, exhaleVelocities } = useMemo(() => {
+  const { exhalePositions, exhaleVelocities } = useMemo(() => {
     const pos = new Float32Array(exhaleCount * 3);
-    const sz = new Float32Array(exhaleCount);
-    const op = new Float32Array(exhaleCount);
     const vel = new Float32Array(exhaleCount * 3);
 
     for (let i = 0; i < exhaleCount; i++) {
       pos[i * 3] = 0;
       pos[i * 3 + 1] = 0.2;
       pos[i * 3 + 2] = 1.2;
-
-      sz[i] = Math.random() * 0.3 + 0.1;
-      op[i] = 0;
 
       vel[i * 3] = (Math.random() - 0.5) * 0.02;
       vel[i * 3 + 1] = Math.random() * 0.015 + 0.01;
@@ -70,13 +58,11 @@ export const ARSmokeEffect = ({
 
     return {
       exhalePositions: pos,
-      exhaleSizes: sz,
-      exhaleOpacities: op,
       exhaleVelocities: vel,
     };
   }, [exhaleCount]);
 
-  useFrame((_, delta) => {
+  useFrame(() => {
     // 1. Hookah Bowl Smoke Animation
     if (particlesRef.current) {
       const posAttr = particlesRef.current.geometry.attributes.position as THREE.BufferAttribute;

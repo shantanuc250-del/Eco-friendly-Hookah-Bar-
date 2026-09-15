@@ -18,19 +18,14 @@ export const ExhaleSmokeEffect = ({
   const particleTimesRef = useRef<Float32Array>(new Float32Array(count));
 
   // Particle Attributes
-  const { positions, sizes, velocities, opacities } = useMemo(() => {
+  const { positions, velocities } = useMemo(() => {
     const pos = new Float32Array(count * 3);
-    const sz = new Float32Array(count);
     const vel = new Float32Array(count * 3);
-    const op = new Float32Array(count);
 
     for (let i = 0; i < count; i++) {
       pos[i * 3] = 0;
       pos[i * 3 + 1] = 0;
       pos[i * 3 + 2] = 0;
-
-      sz[i] = Math.random() * 0.15 + 0.05;
-      op[i] = 0;
 
       // Outward & upward velocities relative to user mouth orientation
       vel[i * 3] = (Math.random() - 0.5) * 0.015; // horizontal spread
@@ -40,9 +35,7 @@ export const ExhaleSmokeEffect = ({
 
     return {
       positions: pos,
-      sizes: sz,
       velocities: vel,
-      opacities: op,
     };
   }, [count]);
 

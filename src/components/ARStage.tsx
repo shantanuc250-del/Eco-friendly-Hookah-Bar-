@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
-import * as THREE from 'three';
 import { useSession } from '../context/SessionContext';
 import ARCameraFeed from './ARCameraFeed';
 import type { FrameTrackingPayload } from './ARCameraFeed';

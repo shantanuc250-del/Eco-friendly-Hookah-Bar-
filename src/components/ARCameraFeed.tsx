@@ -31,7 +31,7 @@ export const ARCameraFeed: React.FC<ARCameraFeedProps> = ({ onFrameTracking, onE
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const { isInitializing, error: visionError, trackingDataRef } = useVisionTracking(videoRef, isCameraActive);
+  const { isInitializing, trackingDataRef } = useVisionTracking(videoRef, isCameraActive);
 
   // Proximity duration accumulator for Part 8 (300-500ms stable proximity required)
   const mouthProximityStartTimeRef = useRef<number | null>(null);
