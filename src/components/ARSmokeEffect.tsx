@@ -62,7 +62,26 @@ export const ARSmokeEffect = ({
     };
   }, [exhaleCount]);
 
-  useFrame(() => {
+  const smokeTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+      gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.8)');
+      gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.2)');
+      gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 64, 64);
+    }
+    return new THREE.CanvasTexture(canvas);
+  }, []);
+
+  useFrame((state) => {
+    const time = state.clock.getElapsedTime();
+
     // 1. Hookah Bowl Smoke Animation
     if (particlesRef.current) {
       const posAttr = particlesRef.current.geometry.attributes.position as THREE.BufferAttribute;
@@ -70,9 +89,12 @@ export const ARSmokeEffect = ({
 
       for (let i = 0; i < count; i++) {
         if (isSmoking || arState === 'SIP_TRIGGERED' || arState === 'SMOKE_ANIMATION') {
-          posArr[i * 3] += velocities[i * 3];
+          const turbulenceX = Math.sin(time * 1.5 + i) * 0.003;
+          const turbulenceZ = Math.cos(time * 1.5 + i) * 0.003;
+
+          posArr[i * 3] += velocities[i * 3] + turbulenceX;
           posArr[i * 3 + 1] += velocities[i * 3 + 1];
-          posArr[i * 3 + 2] += velocities[i * 3 + 2];
+          posArr[i * 3 + 2] += velocities[i * 3 + 2] + turbulenceZ;
 
           // Reset particle loop
           if (posArr[i * 3 + 1] > 2.5) {
@@ -97,8 +119,11 @@ export const ARSmokeEffect = ({
 
       for (let i = 0; i < exhaleCount; i++) {
         if (isExhaling) {
-          posArr[i * 3] += exhaleVelocities[i * 3];
-          posArr[i * 3 + 1] += exhaleVelocities[i * 3 + 1];
+          const turbulenceX = Math.sin(time * 2 + i) * 0.004;
+          const turbulenceY = Math.cos(time * 2 + i) * 0.004;
+
+          posArr[i * 3] += exhaleVelocities[i * 3] + turbulenceX;
+          posArr[i * 3 + 1] += exhaleVelocities[i * 3 + 1] + turbulenceY;
           posArr[i * 3 + 2] += exhaleVelocities[i * 3 + 2];
 
           if (posArr[i * 3 + 1] > mouthY + 1.2 || Math.abs(posArr[i * 3] - mouthX) > 1.5) {
@@ -125,11 +150,12 @@ export const ARSmokeEffect = ({
           />
         </bufferGeometry>
         <pointsMaterial
-          size={0.12}
+          size={0.25}
           color={parsedFlavourColor}
           transparent
-          opacity={isSmoking || arState === 'SIP_TRIGGERED' ? 0.6 : 0.15}
+          opacity={isSmoking || arState === 'SIP_TRIGGERED' ? 0.4 : 0.1}
           depthWrite={false}
+          map={smokeTexture}
           blending={THREE.AdditiveBlending}
         />
       </points>
@@ -143,11 +169,12 @@ export const ARSmokeEffect = ({
           />
         </bufferGeometry>
         <pointsMaterial
-          size={0.25}
+          size={0.35}
           color={parsedFlavourColor.clone().lerp(new THREE.Color('#ffffff'), 0.5)}
           transparent
-          opacity={arState === 'EXHALE' ? 0.7 : arState === 'SMOKE_ANIMATION' ? 0.4 : 0}
+          opacity={arState === 'EXHALE' ? 0.5 : arState === 'SMOKE_ANIMATION' ? 0.3 : 0}
           depthWrite={false}
+          map={smokeTexture}
           blending={THREE.NormalBlending}
         />
       </points>
