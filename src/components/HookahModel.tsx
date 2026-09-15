@@ -107,29 +107,31 @@ export default function HookahModel({ hookah, isSmoking = false, isARMode = fals
   const baseLathGeo = useMemo(() => new THREE.LatheGeometry(baseProfile, 32), [baseProfile]);
   const bowlGeo = useMemo(() => new THREE.LatheGeometry(bowlProfile, 24), [bowlProfile]);
 
-  // Materials matching reference quality specs
+  // Step 4: Premium MeshPhysicalMaterial with transmission & clearcoat for Bohemian glass
   const glassMat = useMemo(
     () =>
       new THREE.MeshPhysicalMaterial({
         color: config.baseColor,
         transparent: true,
         opacity: config.glassOpacity,
-        roughness: 0.05,
+        roughness: 0.04,
         metalness: 0.1,
-        transmission: 0.7,
-        thickness: 0.5,
-        clearcoat: 1,
-        clearcoatRoughness: 0.05,
+        transmission: 0.85,
+        thickness: 0.6,
+        ior: 1.45,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.04,
         side: THREE.DoubleSide,
       }),
     [config.baseColor, config.glassOpacity]
   );
 
+  // Polished 24K Metal Material
   const metalMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
         color: config.metalColor,
-        roughness: 0.15,
+        roughness: 0.12,
         metalness: 0.95,
       }),
     [config.metalColor]
@@ -139,8 +141,8 @@ export default function HookahModel({ hookah, isSmoking = false, isARMode = fals
     () =>
       new THREE.MeshStandardMaterial({
         color: config.stemColor,
-        roughness: 0.2,
-        metalness: 0.9,
+        roughness: 0.18,
+        metalness: 0.92,
       }),
     [config.stemColor]
   );
@@ -149,8 +151,8 @@ export default function HookahModel({ hookah, isSmoking = false, isARMode = fals
     () =>
       new THREE.MeshStandardMaterial({
         color: config.bowlColor,
-        roughness: 0.6,
-        metalness: 0.2,
+        roughness: 0.55,
+        metalness: 0.25,
       }),
     [config.bowlColor]
   );
@@ -159,8 +161,8 @@ export default function HookahModel({ hookah, isSmoking = false, isARMode = fals
     () =>
       new THREE.MeshStandardMaterial({
         color: '#08080a',
-        roughness: 0.2,
-        metalness: 0.8,
+        roughness: 0.15,
+        metalness: 0.85,
       }),
     []
   );
@@ -176,19 +178,28 @@ export default function HookahModel({ hookah, isSmoking = false, isARMode = fals
       const size = new THREE.Vector3();
       box.getSize(size);
       if (size.y > 0) {
-        const targetHeight = 1.7; // Target unit height in AR frustum
+        const targetHeight = 1.7;
         const scaleFactor = targetHeight / size.y;
         groupRef.current.scale.set(scaleFactor, scaleFactor, scaleFactor);
       }
     }
   }, [hookah, isARMode]);
 
+  // Step 3: Subtle floating breathing idle animation (imperceptible float)
   useFrame((state) => {
-    if (groupRef.current && !isARMode) {
-      groupRef.current.rotation.y += 0.003;
+    if (groupRef.current) {
+      const time = state.clock.elapsedTime;
+      // Tiny imperceptible float & rotation
+      if (isARMode) {
+        groupRef.current.position.y = -0.7 + Math.sin(time * 0.8) * 0.005;
+      } else {
+        groupRef.current.rotation.y += 0.003;
+        groupRef.current.position.y = -stemTop / 2 + Math.sin(time * 0.8) * 0.005;
+      }
     }
+
     if (coalRef.current) {
-      const intensity = isSmoking ? 2.5 + Math.sin(state.clock.elapsedTime * 3) * 1 : 0.4 + Math.sin(state.clock.elapsedTime * 1.5) * 0.2;
+      const intensity = isSmoking ? 3.0 + Math.sin(state.clock.elapsedTime * 3) * 1.2 : 0.4 + Math.sin(state.clock.elapsedTime * 1.5) * 0.2;
       (coalRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = intensity;
     }
   });
@@ -213,15 +224,16 @@ export default function HookahModel({ hookah, isSmoking = false, isARMode = fals
       {/* Glass Base */}
       <mesh geometry={baseLathGeo} material={glassMat} castShadow receiveShadow />
 
-      {/* Water inside base */}
+      {/* Refractive Water inside base */}
       <mesh position={[0, baseHeight * 0.3, 0]}>
         <sphereGeometry args={[0.65, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <meshPhysicalMaterial
           color={config.baseColor}
           transparent
-          opacity={0.3}
-          roughness={0.1}
-          transmission={0.6}
+          opacity={0.35}
+          roughness={0.08}
+          transmission={0.7}
+          ior={1.33}
         />
       </mesh>
 

@@ -8,6 +8,7 @@ import HookahModel from './HookahModel';
 import FlexibleHose from './FlexibleHose';
 import ARSmokeEffect from './ARSmokeEffect';
 import ExhaleSmokeEffect from './ExhaleSmokeEffect';
+import FloatingParticles3D from './FloatingParticles';
 import AROverlayUI from './AROverlayUI';
 import ARTutorial from './ARTutorial';
 import CameraFallback from './CameraFallback';
@@ -68,12 +69,15 @@ export const ARStage: React.FC<ARStageProps> = ({ onExitCameraMode }) => {
         >
           <PerspectiveCamera makeDefault position={[0, 0, 3.2]} fov={45} />
           
-          {/* Lighting */}
-          <ambientLight intensity={0.7} color="#1a1a2e" />
-          <directionalLight position={[2, 4, 3]} intensity={1.8} color="#ffffff" />
-          <spotLight position={[-3, 3, 2]} intensity={1.5} color={selectedHookah.accent} angle={0.6} />
+          {/* Step 5: Adaptive Cinematic AR Lighting */}
+          <ambientLight intensity={0.75} color="#1a1a2e" />
+          <directionalLight position={[2, 4, 3]} intensity={1.9} color="#ffffff" />
+          <spotLight position={[-3, 3, 2]} intensity={2.2} color={selectedHookah.accent} angle={0.65} penumbra={0.8} />
           
-          {/* PART 6: STATIONARY HOOKAH BODY GROUP ON LEFT SIDE (x = -1.25) */}
+          {/* Step 18: Subtle Atmospheric Lounge Dust Particles */}
+          <FloatingParticles3D />
+
+          {/* STATIONARY HOOKAH BODY GROUP ON LEFT SIDE (x = -1.25) */}
           <group position={[-1.25, -0.4, -0.2]}>
             <HookahModel hookah={selectedHookah} isARMode={true} isSmoking={isSmoking} />
             <ARSmokeEffect
@@ -93,7 +97,7 @@ export const ARStage: React.FC<ARStageProps> = ({ onExitCameraMode }) => {
             isSmoking={isSmoking}
           />
 
-          {/* PART 10 & 11: EXHALE SMOKE ORIGINATING STRICTLY AT USER'S MOUTH POSITION */}
+          {/* EXHALE SMOKE ORIGINATING STRICTLY AT USER'S MOUTH POSITION */}
           {trackingData.mouthWorldPos && (
             <ExhaleSmokeEffect
               mouthWorldPos={trackingData.mouthWorldPos}
@@ -102,7 +106,7 @@ export const ARStage: React.FC<ARStageProps> = ({ onExitCameraMode }) => {
             />
           )}
 
-          {/* PART 15: DEVELOPMENT DEBUG MODE SPHERES & CONNECTORS */}
+          {/* DEVELOPMENT DEBUG MODE SPHERES & CONNECTORS */}
           {showDebugAR && (
             <group>
               {/* Hand Grip Target Marker */}

@@ -30,28 +30,28 @@ export const FlexibleHose = ({
   const currentRotation = useRef<THREE.Quaternion>(new THREE.Quaternion());
 
   useFrame((_, delta) => {
-    // 1. Calculate Target Mouthpiece Position (Part 2 & 4)
+    // Step 9: Spring-like smoothing & position lerp
     let targetPos = defaultRestPos;
 
     if (isGrabbing && handWorldPos) {
-      // Offset slightly to align mouthpiece naturally with pinch grip
+      // Natural grip offset
       targetPos = new THREE.Vector3(
         handWorldPos.x,
-        handWorldPos.y - 0.05,
-        handWorldPos.z + 0.1
+        handWorldPos.y - 0.04,
+        handWorldPos.z + 0.08
       );
     }
 
-    // Clamp position within safe stage boundaries (Part 19)
+    // Clamp position within safe AR stage bounds (Part 19)
     targetPos.x = THREE.MathUtils.clamp(targetPos.x, -2.2, 2.2);
     targetPos.y = THREE.MathUtils.clamp(targetPos.y, -1.5, 1.5);
     targetPos.z = THREE.MathUtils.clamp(targetPos.z, -0.5, 2.0);
 
-    // Smooth lerp mouthpiece towards target
+    // Damped lerp (14 when grabbed for responsiveness, 6 when releasing to rest position)
     const lerpSpeed = isGrabbing ? 14 : 6;
     currentMouthpiecePos.current.lerp(targetPos, Math.min(delta * lerpSpeed, 1.0));
 
-    // Update Mouthpiece Group transform (Part 14: Quaternion Slerp)
+    // Update Mouthpiece Group transform (Quaternion Slerp)
     if (mouthpieceRef.current) {
       mouthpieceRef.current.position.copy(currentMouthpiecePos.current);
 
@@ -68,20 +68,20 @@ export const FlexibleHose = ({
       mouthpieceRef.current.quaternion.copy(currentRotation.current);
     }
 
-    // 2. Reconstruct dynamic Catmull-Rom hose curve (Part 5)
+    // Step 10: Dynamic Catmull-Rom hose curve with elastic sag
     const p0 = fixedHoseBasePos.clone();
     const p3 = currentMouthpiecePos.current.clone();
 
-    // Natural sagging control points
+    // Natural elastic sag control points
     const p1 = new THREE.Vector3(
       p0.x * 0.7 + p3.x * 0.3,
-      Math.min(p0.y, p3.y) - 0.6,
-      (p0.z + p3.z) * 0.5 + 0.2
+      Math.min(p0.y, p3.y) - 0.5,
+      (p0.z + p3.z) * 0.5 + 0.25
     );
 
     const p2 = new THREE.Vector3(
       p0.x * 0.3 + p3.x * 0.7,
-      Math.min(p0.y, p3.y) - 0.4,
+      Math.min(p0.y, p3.y) - 0.35,
       p3.z + 0.1
     );
 
@@ -112,7 +112,7 @@ export const FlexibleHose = ({
           <cylinderGeometry args={[0.025, 0.02, 0.25, 16]} />
           <meshStandardMaterial
             color={accentColor}
-            metalness={0.9}
+            metalness={0.95}
             roughness={0.1}
           />
         </mesh>
@@ -123,19 +123,19 @@ export const FlexibleHose = ({
           <meshStandardMaterial
             color="#ffffff"
             metalness={0.2}
-            roughness={0.1}
+            roughness={0.08}
             transparent
-            opacity={0.9}
+            opacity={0.92}
           />
         </mesh>
 
-        {/* Glowing Indicator Ring */}
+        {/* Step 11: Glowing Indicator Ring with subtle scale pulse */}
         <mesh position={[0, 0, 0.27]}>
           <ringGeometry args={[0.02, 0.04, 32]} />
           <meshBasicMaterial
             color={isSmoking ? '#ffd700' : isGrabbing ? '#00ffff' : accentColor}
             transparent
-            opacity={isSmoking ? 0.9 : isGrabbing ? 0.8 : 0.4}
+            opacity={isSmoking ? 0.95 : isGrabbing ? 0.85 : 0.4}
             side={THREE.DoubleSide}
           />
         </mesh>
@@ -143,8 +143,8 @@ export const FlexibleHose = ({
         {(isGrabbing || isSmoking) && (
           <pointLight
             position={[0, 0, 0.28]}
-            intensity={isSmoking ? 3.0 : 1.5}
-            distance={0.8}
+            intensity={isSmoking ? 3.5 : 1.8}
+            distance={0.9}
             color={isSmoking ? '#ffaa00' : '#00ffff'}
           />
         )}
