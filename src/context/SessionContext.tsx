@@ -4,6 +4,7 @@ import type { HookahData } from '../data/hookahs';
 import { hookahs } from '../data/hookahs';
 import type { FlavourData } from '../data/flavours';
 import { flavours } from '../data/flavours';
+import { audioManager } from '../utils/AudioManager';
 
 export type CameraStatus = 'idle' | 'requesting' | 'granted' | 'denied' | 'unsupported';
 export type ARInteractionState = 
@@ -33,6 +34,7 @@ interface SessionState {
   showTutorial: boolean;
   arState: ARInteractionState;
   sipCount: number;
+  isAudioEnabled: boolean;
 }
 
 interface SessionContextType extends SessionState {
@@ -54,6 +56,7 @@ interface SessionContextType extends SessionState {
   triggerSip: () => void;
   resetArPosition: () => void;
   closeTutorial: () => void;
+  toggleAudio: () => void;
 }
 
 const SessionContext = createContext<SessionContextType | null>(null);
@@ -82,6 +85,7 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
   const [showTutorial, setShowTutorial] = useState(true);
   const [arState, setArState] = useState<ARInteractionState>('IDLE');
   const [sipCount, setSipCount] = useState(0);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -145,10 +149,23 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
     setShowHandTrackingState(show);
   }, []);
 
+  const toggleAudio = useCallback(() => {
+    setIsAudioEnabled((prev) => {
+      const next = !prev;
+      if (next) {
+        audioManager.enable();
+      } else {
+        audioManager.disable();
+      }
+      return next;
+    });
+  }, []);
+
   const triggerSip = useCallback(() => {
     setArState('SIP_TRIGGERED');
     setIsSmoking(true);
     setSipCount((prev) => prev + 1);
+    audioManager.startInhale();
     if (!isSessionActive) {
       setIsSessionActive(true);
     }
@@ -160,11 +177,13 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
 
     setTimeout(() => {
       setArState('EXHALE');
+      audioManager.startExhale();
     }, 2800);
 
     setTimeout(() => {
       setArState('IDLE');
       setIsSmoking(false);
+      audioManager.endInhale();
     }, 4500);
   }, [isSessionActive]);
 
@@ -191,6 +210,10 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [isSessionActive]);
 
+  useEffect(() => {
+    audioManager.setHookahFlavor(selectedHookah.name);
+  }, [selectedHookah]);
+
   return (
     <SessionContext.Provider
       value={{
@@ -207,6 +230,7 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
         showTutorial,
         arState,
         sipCount,
+        isAudioEnabled,
         setSelectedHookah,
         setSelectedFlavour,
         verifyAge,
@@ -224,6 +248,7 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
         triggerSip,
         resetArPosition,
         closeTutorial,
+        toggleAudio,
       }}
     >
       {children}

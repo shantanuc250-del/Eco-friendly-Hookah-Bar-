@@ -3,6 +3,7 @@ import { useSession } from '../context/SessionContext';
 import { useVisionTracking } from '../hooks/useVisionTracking';
 import { videoToStageCoordinates } from '../utils/arCoordinates';
 import * as THREE from 'three';
+import { audioManager } from '../utils/AudioManager';
 
 export interface FrameTrackingPayload {
   handWorldPos: THREE.Vector3 | null;
@@ -35,6 +36,11 @@ export const ARCameraFeed: React.FC<ARCameraFeedProps> = ({ onFrameTracking, onE
 
   // Proximity duration accumulator for Part 8 (300-500ms stable proximity required)
   const mouthProximityStartTimeRef = useRef<number | null>(null);
+
+  // Audio Tracking Refs
+  const prevGrabStateRef = useRef<boolean>(false);
+  const prevHandPosRef = useRef<THREE.Vector3 | null>(null);
+  const lastFrameTimeRef = useRef<number>(performance.now());
 
   // 1. Initialize Camera Stream via getUserMedia
   useEffect(() => {
@@ -154,10 +160,29 @@ export const ARCameraFeed: React.FC<ARCameraFeedProps> = ({ onFrameTracking, onE
       handDetected: trackingData.handDetected,
     });
 
+    const now = performance.now();
+    const dt = now - lastFrameTimeRef.current;
+    lastFrameTimeRef.current = now;
+
+    // Audio: Grab Event
+    if (trackingData.isGrabbing && !prevGrabStateRef.current) {
+      audioManager.playGrab();
+    }
+    prevGrabStateRef.current = trackingData.isGrabbing;
+
+    // Audio: Hose Velocity
+    if (handWorldPos && prevHandPosRef.current && dt > 0) {
+      const distance = handWorldPos.distanceTo(prevHandPosRef.current);
+      const velocity = distance / (dt / 1000); // units per second
+      audioManager.updateHoseVelocity(velocity);
+    } else {
+      audioManager.updateHoseVelocity(0);
+    }
+    prevHandPosRef.current = handWorldPos ? handWorldPos.clone() : null;
+
     // Part 8: Sip Detection Proximity Check (300-500ms required proximity while grabbed)
     if (trackingData.isGrabbing && handWorldPos && mouthWorldPos) {
       const distance = handWorldPos.distanceTo(mouthWorldPos);
-      const now = performance.now();
 
       if (distance < 0.65) {
         if (mouthProximityStartTimeRef.current === null) {
@@ -239,6 +264,19 @@ export const ARCameraFeed: React.FC<ARCameraFeedProps> = ({ onFrameTracking, onE
       }
 
       ctx.restore();
+
+      // Debug Text Output (Part 12: UI Indicator)
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillRect(16, 16, 220, 80);
+      ctx.fillStyle = '#00ffff';
+      ctx.font = '14px monospace';
+      ctx.fillText('TRACKING: ON', 28, 40);
+      
+      if (trackingData.activeUserId !== null && trackingData.isGrabbing) {
+        ctx.fillStyle = '#ffd700';
+        ctx.fillText('USER TRACKED', 28, 60);
+        ctx.fillText(`ACTIVE TRACK ID: ${trackingData.activeUserId}`, 28, 80);
+      }
     }
   }, [showHandTracking, trackingDataRef, onFrameTracking, arState, triggerSip, setArState]);
 

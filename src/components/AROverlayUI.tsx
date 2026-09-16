@@ -1,4 +1,4 @@
-import { Camera, Eye, Flame, RefreshCw, X, ShieldCheck, Hand, Bug } from 'lucide-react';
+import { Camera, Eye, Flame, RefreshCw, X, ShieldCheck, Hand, Bug, Volume2, VolumeX } from 'lucide-react';
 import { useSession } from '../context/SessionContext';
 
 interface AROverlayUIProps {
@@ -27,6 +27,8 @@ export const AROverlayUI: React.FC<AROverlayUIProps> = ({
     sipCount,
     selectedHookah,
     selectedFlavour,
+    isAudioEnabled,
+    toggleAudio,
   } = useSession();
 
   // Dynamic Instruction Panel Text (Part 20)
@@ -76,6 +78,19 @@ export const AROverlayUI: React.FC<AROverlayUIProps> = ({
           >
             <Bug className="w-3.5 h-3.5" />
             <span>DEBUG AR [{showDebugAR ? 'ON' : 'OFF'}]</span>
+          </button>
+
+          {/* Sound Toggle */}
+          <button
+            onClick={toggleAudio}
+            className={`px-3 py-1.5 rounded-full text-xs font-mono border backdrop-blur-md transition-all flex items-center gap-1.5 cursor-pointer ${
+              isAudioEnabled
+                ? 'bg-amber-600/30 border-amber-400 text-amber-200 shadow-lg shadow-amber-500/20'
+                : 'bg-black/60 border-white/15 text-gray-400 hover:text-white'
+            }`}
+          >
+            {isAudioEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">SOUND {isAudioEnabled ? 'ON' : 'OFF'}</span>
           </button>
 
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/75 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-medium backdrop-blur-md">
